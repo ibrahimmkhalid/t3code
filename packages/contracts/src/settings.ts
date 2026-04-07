@@ -77,6 +77,15 @@ export const ObservabilitySettings = Schema.Struct({
 });
 export type ObservabilitySettings = typeof ObservabilitySettings.Type;
 
+export const TerminalEditorEntry = Schema.Struct({
+  id: TrimmedNonEmptyString,
+  label: TrimmedNonEmptyString,
+  terminalCommand: TrimmedNonEmptyString,
+  terminalArgs: Schema.Array(Schema.String).pipe(Schema.withDecodingDefault(() => [])),
+  editorCommand: TrimmedNonEmptyString,
+});
+export type TerminalEditorEntry = typeof TerminalEditorEntry.Type;
+
 export const ServerSettings = Schema.Struct({
   enableAssistantStreaming: Schema.Boolean.pipe(Schema.withDecodingDefault(() => false)),
   defaultThreadEnvMode: ThreadEnvMode.pipe(
@@ -95,6 +104,7 @@ export const ServerSettings = Schema.Struct({
     claudeAgent: ClaudeSettings.pipe(Schema.withDecodingDefault(() => ({}))),
   }).pipe(Schema.withDecodingDefault(() => ({}))),
   observability: ObservabilitySettings.pipe(Schema.withDecodingDefault(() => ({}))),
+  terminalEditors: Schema.Array(TerminalEditorEntry).pipe(Schema.withDecodingDefault(() => [])),
 });
 export type ServerSettings = typeof ServerSettings.Type;
 
@@ -177,5 +187,6 @@ export const ServerSettingsPatch = Schema.Struct({
       claudeAgent: Schema.optionalKey(ClaudeSettingsPatch),
     }),
   ),
+  terminalEditors: Schema.optionalKey(Schema.Array(TerminalEditorEntry)),
 });
 export type ServerSettingsPatch = typeof ServerSettingsPatch.Type;

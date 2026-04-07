@@ -1,6 +1,7 @@
 import { useAtomSubscribe, useAtomValue } from "@effect/atom-react";
 import {
   DEFAULT_SERVER_SETTINGS,
+  type AvailableTerminalEditor,
   type EditorId,
   type ServerConfig,
   type ServerConfigStreamEvent,
@@ -42,11 +43,16 @@ function toServerConfigUpdatedPayload(config: ServerConfig): ServerConfigUpdated
 }
 
 const EMPTY_AVAILABLE_EDITORS: ReadonlyArray<EditorId> = [];
+const EMPTY_AVAILABLE_TERMINAL_EDITORS: ReadonlyArray<AvailableTerminalEditor> = [];
 const EMPTY_KEYBINDINGS: ServerConfig["keybindings"] = [];
 const EMPTY_SERVER_PROVIDERS: ReadonlyArray<ServerProvider> = [];
 
 const selectAvailableEditors = (config: ServerConfig | null): ReadonlyArray<EditorId> =>
   config?.availableEditors ?? EMPTY_AVAILABLE_EDITORS;
+const selectAvailableTerminalEditors = (
+  config: ServerConfig | null,
+): ReadonlyArray<AvailableTerminalEditor> =>
+  config?.availableTerminalEditors ?? EMPTY_AVAILABLE_TERMINAL_EDITORS;
 const selectKeybindings = (config: ServerConfig | null) => config?.keybindings ?? EMPTY_KEYBINDINGS;
 const selectKeybindingsConfigPath = (config: ServerConfig | null) =>
   config?.keybindingsConfigPath ?? null;
@@ -108,7 +114,7 @@ export function applyServerConfigEvent(event: ServerConfigStreamEvent): void {
       return;
     }
     case "settingsUpdated": {
-      applySettingsUpdated(event.payload.settings);
+      applySettingsUpdated(event.payload);
       return;
     }
   }
@@ -130,7 +136,10 @@ export function applyProvidersUpdated(payload: ServerProviderUpdatedPayload): vo
   emitServerConfigUpdated(toServerConfigUpdatedPayload(nextConfig), "providerStatuses");
 }
 
-export function applySettingsUpdated(settings: ServerSettings): void {
+export function applySettingsUpdated(payload: {
+  settings: ServerSettings;
+  availableTerminalEditors?: ReadonlyArray<AvailableTerminalEditor>;
+}): void {
   const latestServerConfig = getServerConfig();
   if (!latestServerConfig) {
     return;
@@ -138,7 +147,9 @@ export function applySettingsUpdated(settings: ServerSettings): void {
 
   const nextConfig = {
     ...latestServerConfig,
-    settings,
+    settings: payload.settings,
+    availableTerminalEditors:
+      payload.availableTerminalEditors ?? latestServerConfig.availableTerminalEditors,
   } satisfies ServerConfig;
   resolveServerConfig(nextConfig);
   emitServerConfigUpdated(toServerConfigUpdatedPayload(nextConfig), "settingsUpdated");
@@ -276,6 +287,10 @@ export function useServerKeybindings(): ServerConfig["keybindings"] {
 
 export function useServerAvailableEditors(): ReadonlyArray<EditorId> {
   return useAtomValue(serverConfigAtom, selectAvailableEditors);
+}
+
+export function useServerAvailableTerminalEditors(): ReadonlyArray<AvailableTerminalEditor> {
+  return useAtomValue(serverConfigAtom, selectAvailableTerminalEditors);
 }
 
 export function useServerKeybindingsConfigPath(): string | null {

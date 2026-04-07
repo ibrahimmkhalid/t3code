@@ -37,6 +37,12 @@ export const OpenInEditorInput = Schema.Struct({
 });
 export type OpenInEditorInput = typeof OpenInEditorInput.Type;
 
+export const OpenInTerminalEditorInput = Schema.Struct({
+  cwd: TrimmedNonEmptyString,
+  terminalEditorId: TrimmedNonEmptyString,
+});
+export type OpenInTerminalEditorInput = typeof OpenInTerminalEditorInput.Type;
+
 export class OpenError extends Schema.TaggedErrorClass<OpenError>()("OpenError", {
   message: Schema.String,
   cause: Schema.optional(Schema.Defect),

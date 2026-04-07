@@ -28,7 +28,7 @@ import { ServerConfig } from "./config";
 import { GitCore } from "./git/Services/GitCore";
 import { GitManager } from "./git/Services/GitManager";
 import { Keybindings } from "./keybindings";
-import { Open, resolveAvailableEditors } from "./open";
+import { Open, resolveAvailableEditors, resolveAvailableTerminalEditors } from "./open";
 import { normalizeDispatchCommand } from "./orchestration/Normalizer";
 import { OrchestrationEngineService } from "./orchestration/Services/OrchestrationEngine";
 import { ProjectionSnapshotQuery } from "./orchestration/Services/ProjectionSnapshotQuery";
@@ -336,6 +336,7 @@ const WsRpcLayer = WsRpcGroup.toLayer(
         issues: keybindingsConfig.issues,
         providers,
         availableEditors: resolveAvailableEditors(),
+        availableTerminalEditors: resolveAvailableTerminalEditors(settings.terminalEditors),
         observability: {
           logsDirectoryPath: config.logsDir,
           localTracingEnabled: true,
@@ -559,6 +560,15 @@ const WsRpcLayer = WsRpcGroup.toLayer(
         observeRpcEffect(WS_METHODS.shellOpenInEditor, open.openInEditor(input), {
           "rpc.aggregate": "workspace",
         }),
+      [WS_METHODS.shellOpenInTerminalEditor]: (input) =>
+        observeRpcEffect(
+          WS_METHODS.shellOpenInTerminalEditor,
+          Effect.gen(function* () {
+            const { terminalEditors } = yield* serverSettings.getSettings;
+            yield* open.openInTerminalEditor(input, terminalEditors);
+          }),
+          { "rpc.aggregate": "workspace" },
+        ),
       [WS_METHODS.gitStatus]: (input) =>
         observeRpcEffect(WS_METHODS.gitStatus, gitManager.status(input), {
           "rpc.aggregate": "git",
@@ -678,7 +688,12 @@ const WsRpcLayer = WsRpcGroup.toLayer(
               Stream.map((settings) => ({
                 version: 1 as const,
                 type: "settingsUpdated" as const,
-                payload: { settings },
+                payload: {
+                  settings,
+                  availableTerminalEditors: resolveAvailableTerminalEditors(
+                    settings.terminalEditors,
+                  ),
+                },
               })),
             );
 

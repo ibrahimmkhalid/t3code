@@ -57,6 +57,7 @@ const baseServerConfig: ServerConfig = {
   issues: [],
   providers: defaultProviders,
   availableEditors: ["cursor"],
+  availableTerminalEditors: [],
   observability: {
     logsDirectoryPath: "/tmp/workspace/.config/logs",
     localTracingEnabled: true,
@@ -264,6 +265,7 @@ describe("serverState", () => {
           ...DEFAULT_SERVER_SETTINGS,
           enableAssistantStreaming: true,
         },
+        availableTerminalEditors: [],
       },
     });
 
@@ -272,6 +274,7 @@ describe("serverState", () => {
         ...baseServerConfig,
         issues: [{ kind: "keybindings.malformed-config", message: "bad json" }],
         providers: nextProviders,
+        availableTerminalEditors: [],
         settings: {
           ...DEFAULT_SERVER_SETTINGS,
           enableAssistantStreaming: true,

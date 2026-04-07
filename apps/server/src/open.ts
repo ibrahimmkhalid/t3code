@@ -10,7 +10,14 @@ import { spawn } from "node:child_process";
 import { accessSync, constants, statSync } from "node:fs";
 import { extname, join } from "node:path";
 
-import { EDITORS, OpenError, type EditorId } from "@t3tools/contracts";
+import {
+  EDITORS,
+  OpenError,
+  type EditorId,
+  type OpenInTerminalEditorInput,
+  type TerminalEditorEntry,
+  type AvailableTerminalEditor,
+} from "@t3tools/contracts";
 import { ServiceMap, Effect, Layer } from "effect";
 
 // ==============================
@@ -207,6 +214,27 @@ export function resolveAvailableEditors(
   return available;
 }
 
+export function resolveAvailableTerminalEditors(
+  terminalEditors: ReadonlyArray<TerminalEditorEntry>,
+  platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
+): ReadonlyArray<AvailableTerminalEditor> {
+  return terminalEditors
+    .filter(
+      (entry) =>
+        isCommandAvailable(entry.terminalCommand, { platform, env }) &&
+        isCommandAvailable(entry.editorCommand, { platform, env }),
+    )
+    .map(({ id, label }) => ({ id, label }));
+}
+
+function resolveTerminalEditorLaunch(entry: TerminalEditorEntry, cwd: string): EditorLaunch {
+  return {
+    command: entry.terminalCommand,
+    args: [...entry.terminalArgs, entry.editorCommand, cwd],
+  };
+}
+
 /**
  * OpenShape - Service API for browser and editor launch actions.
  */
@@ -222,6 +250,16 @@ export interface OpenShape {
    * Launches the editor as a detached process so server startup is not blocked.
    */
   readonly openInEditor: (input: OpenInEditorInput) => Effect.Effect<void, OpenError>;
+
+  /**
+   * Open a workspace path in a user-configured terminal editor.
+   *
+   * Launches the terminal emulator with the editor command as a detached process.
+   */
+  readonly openInTerminalEditor: (
+    input: OpenInTerminalEditorInput,
+    terminalEditors: ReadonlyArray<TerminalEditorEntry>,
+  ) => Effect.Effect<void, OpenError>;
 }
 
 /**
@@ -306,6 +344,16 @@ const make = Effect.gen(function* () {
         catch: (cause) => new OpenError({ message: "Browser auto-open failed", cause }),
       }),
     openInEditor: (input) => Effect.flatMap(resolveEditorLaunch(input), launchDetached),
+    openInTerminalEditor: (input, terminalEditors) =>
+      Effect.gen(function* () {
+        const entry = terminalEditors.find((e) => e.id === input.terminalEditorId);
+        if (!entry) {
+          return yield* new OpenError({
+            message: `Terminal editor not found: ${input.terminalEditorId}`,
+          });
+        }
+        yield* launchDetached(resolveTerminalEditorLaunch(entry, input.cwd));
+      }),
   } satisfies OpenShape;
 });
 

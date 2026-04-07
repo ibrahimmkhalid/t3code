@@ -51,6 +51,7 @@ const rpcClientMock = {
   },
   shell: {
     openInEditor: vi.fn(),
+    openInTerminalEditor: vi.fn(),
   },
   git: {
     pull: vi.fn(),
@@ -159,6 +160,7 @@ const baseServerConfig: ServerConfig = {
   issues: [],
   providers: defaultProviders,
   availableEditors: ["cursor"],
+  availableTerminalEditors: [],
   observability: {
     logsDirectoryPath: "/tmp/workspace/.config/logs",
     localTracingEnabled: true,

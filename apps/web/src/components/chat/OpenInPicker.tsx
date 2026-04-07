@@ -1,11 +1,15 @@
-import { EditorId, type ResolvedKeybindingsConfig } from "@t3tools/contracts";
+import {
+  EditorId,
+  type AvailableTerminalEditor,
+  type ResolvedKeybindingsConfig,
+} from "@t3tools/contracts";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { isOpenFavoriteEditorShortcut, shortcutLabelForCommand } from "../../keybindings";
-import { usePreferredEditor } from "../../editorPreferences";
-import { ChevronDownIcon, FolderClosedIcon } from "lucide-react";
+import { usePreferredEditor, usePreferredTerminalEditor } from "../../editorPreferences";
+import { ChevronDownIcon, FolderClosedIcon, TerminalSquareIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Group, GroupSeparator } from "../ui/group";
-import { Menu, MenuItem, MenuPopup, MenuShortcut, MenuTrigger } from "../ui/menu";
+import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuShortcut, MenuTrigger } from "../ui/menu";
 import {
   AntigravityIcon,
   CursorIcon,
@@ -76,17 +80,23 @@ const resolveOptions = (platform: string, availableEditors: ReadonlyArray<Editor
 export const OpenInPicker = memo(function OpenInPicker({
   keybindings,
   availableEditors,
+  availableTerminalEditors,
   openInCwd,
 }: {
   keybindings: ResolvedKeybindingsConfig;
   availableEditors: ReadonlyArray<EditorId>;
+  availableTerminalEditors: ReadonlyArray<AvailableTerminalEditor>;
   openInCwd: string | null;
 }) {
   const [preferredEditor, setPreferredEditor] = usePreferredEditor(availableEditors);
+  const [preferredTerminalEditor, setPreferredTerminalEditor] =
+    usePreferredTerminalEditor(availableTerminalEditors);
+
   const options = useMemo(
     () => resolveOptions(navigator.platform, availableEditors),
     [availableEditors],
   );
+
   const primaryOption = options.find(({ value }) => value === preferredEditor) ?? null;
 
   const openInEditor = useCallback(
@@ -99,6 +109,18 @@ export const OpenInPicker = memo(function OpenInPicker({
       setPreferredEditor(editor);
     },
     [preferredEditor, openInCwd, setPreferredEditor],
+  );
+
+  const openInTerminalEditor = useCallback(
+    (id: string | null) => {
+      const api = readNativeApi();
+      if (!api || !openInCwd) return;
+      const terminalEditorId = id ?? preferredTerminalEditor;
+      if (!terminalEditorId) return;
+      void api.shell.openInTerminalEditor(openInCwd, terminalEditorId);
+      setPreferredTerminalEditor(terminalEditorId);
+    },
+    [preferredTerminalEditor, openInCwd, setPreferredTerminalEditor],
   );
 
   const openFavoriteEditorShortcutLabel = useMemo(
@@ -125,7 +147,7 @@ export const OpenInPicker = memo(function OpenInPicker({
       <Button
         size="xs"
         variant="outline"
-        disabled={!preferredEditor || !openInCwd}
+        disabled={!primaryOption || !openInCwd}
         onClick={() => openInEditor(preferredEditor)}
       >
         {primaryOption?.Icon && <primaryOption.Icon aria-hidden="true" className="size-3.5" />}
@@ -139,7 +161,9 @@ export const OpenInPicker = memo(function OpenInPicker({
           <ChevronDownIcon aria-hidden="true" className="size-4" />
         </MenuTrigger>
         <MenuPopup align="end">
-          {options.length === 0 && <MenuItem disabled>No installed editors found</MenuItem>}
+          {options.length === 0 && availableTerminalEditors.length === 0 && (
+            <MenuItem disabled>No installed editors found</MenuItem>
+          )}
           {options.map(({ label, Icon, value }) => (
             <MenuItem key={value} onClick={() => openInEditor(value)}>
               <Icon aria-hidden="true" className="text-muted-foreground" />
@@ -147,6 +171,13 @@ export const OpenInPicker = memo(function OpenInPicker({
               {value === preferredEditor && openFavoriteEditorShortcutLabel && (
                 <MenuShortcut>{openFavoriteEditorShortcutLabel}</MenuShortcut>
               )}
+            </MenuItem>
+          ))}
+          {options.length > 0 && availableTerminalEditors.length > 0 && <MenuSeparator />}
+          {availableTerminalEditors.map(({ id, label }) => (
+            <MenuItem key={id} onClick={() => openInTerminalEditor(id)}>
+              <TerminalSquareIcon aria-hidden="true" className="text-muted-foreground" />
+              {label}
             </MenuItem>
           ))}
         </MenuPopup>

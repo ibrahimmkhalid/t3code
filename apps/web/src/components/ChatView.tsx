@@ -194,6 +194,7 @@ import {
 import { useLocalStorage } from "~/hooks/useLocalStorage";
 import {
   useServerAvailableEditors,
+  useServerAvailableTerminalEditors,
   useServerConfig,
   useServerKeybindings,
 } from "~/rpc/serverState";
@@ -1402,6 +1403,7 @@ export default function ChatView({ threadId }: ChatViewProps) {
   const gitStatusQuery = useQuery(gitStatusQueryOptions(gitCwd));
   const keybindings = useServerKeybindings();
   const availableEditors = useServerAvailableEditors();
+  const availableTerminalEditors = useServerAvailableTerminalEditors();
   const modelOptionsByProvider = useMemo(
     () => ({
       codex: providerStatuses.find((provider) => provider.provider === "codex")?.models ?? [],
@@ -3939,6 +3941,7 @@ export default function ChatView({ threadId }: ChatViewProps) {
           }
           keybindings={keybindings}
           availableEditors={availableEditors}
+          availableTerminalEditors={availableTerminalEditors}
           terminalAvailable={activeProject !== undefined}
           terminalOpen={terminalState.terminalOpen}
           terminalToggleShortcutLabel={terminalToggleShortcutLabel}

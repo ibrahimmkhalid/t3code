@@ -1,6 +1,7 @@
-import { EDITORS, EditorId, NativeApi } from "@t3tools/contracts";
+import { EDITORS, EditorId, NativeApi, type AvailableTerminalEditor } from "@t3tools/contracts";
+import { Schema } from "effect";
 import { getLocalStorageItem, setLocalStorageItem, useLocalStorage } from "./hooks/useLocalStorage";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 const LAST_EDITOR_KEY = "t3code:last-editor";
 
@@ -24,6 +25,24 @@ export function resolveAndPersistPreferredEditor(
   const editor = EDITORS.find((editor) => availableEditorIds.has(editor.id))?.id ?? null;
   if (editor) setLocalStorageItem(LAST_EDITOR_KEY, editor, EditorId);
   return editor ?? null;
+}
+
+const LAST_TERMINAL_EDITOR_KEY = "t3code:last-terminal-editor";
+
+export function usePreferredTerminalEditor(
+  availableTerminalEditors: ReadonlyArray<AvailableTerminalEditor>,
+): readonly [string | null, (id: string) => void] {
+  const [lastId, setLastId] = useLocalStorage(
+    LAST_TERMINAL_EDITOR_KEY,
+    null,
+    Schema.NullOr(Schema.String),
+  );
+  const effectiveId = useMemo(() => {
+    if (lastId && availableTerminalEditors.some((e) => e.id === lastId)) return lastId;
+    return availableTerminalEditors[0]?.id ?? null;
+  }, [lastId, availableTerminalEditors]);
+  const setTerminalEditor = useCallback((id: string) => setLastId(id), [setLastId]);
+  return [effectiveId, setTerminalEditor] as const;
 }
 
 export async function openInPreferredEditor(api: NativeApi, targetPath: string): Promise<EditorId> {

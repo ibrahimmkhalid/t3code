@@ -141,6 +141,7 @@ export interface NativeApi {
   };
   shell: {
     openInEditor: (cwd: string, editor: EditorId) => Promise<void>;
+    openInTerminalEditor: (cwd: string, terminalEditorId: string) => Promise<void>;
     openExternal: (url: string) => Promise<void>;
   };
   git: {

@@ -547,6 +547,13 @@ export function GeneralSettingsPanel() {
   const [customModelErrorByProvider, setCustomModelErrorByProvider] = useState<
     Partial<Record<ProviderKind, string | null>>
   >({});
+  const [newTerminalEditor, setNewTerminalEditor] = useState({
+    label: "",
+    terminalCommand: "",
+    terminalArgs: "",
+    editorCommand: "",
+  });
+  const [terminalEditorAddError, setTerminalEditorAddError] = useState<string | null>(null);
   const [isRefreshingProviders, setIsRefreshingProviders] = useState(false);
   const refreshingRef = useRef(false);
   const modelListRefs = useRef<Partial<Record<ProviderKind, HTMLDivElement | null>>>({});
@@ -729,6 +736,49 @@ export function GeneralSettingsPanel() {
         ...existing,
         [provider]: null,
       }));
+    },
+    [settings, updateSettings],
+  );
+
+  const addTerminalEditor = useCallback(() => {
+    const { label, terminalCommand, terminalArgs, editorCommand } = newTerminalEditor;
+    if (!label.trim()) {
+      setTerminalEditorAddError("Label is required.");
+      return;
+    }
+    if (!terminalCommand.trim()) {
+      setTerminalEditorAddError("Terminal command is required.");
+      return;
+    }
+    if (!editorCommand.trim()) {
+      setTerminalEditorAddError("Editor command is required.");
+      return;
+    }
+    setTerminalEditorAddError(null);
+    const parsedArgs = terminalArgs
+      .trim()
+      .split(/\s+/)
+      .filter((arg) => arg.length > 0);
+    updateSettings({
+      terminalEditors: [
+        ...settings.terminalEditors,
+        {
+          id: crypto.randomUUID(),
+          label: label.trim(),
+          terminalCommand: terminalCommand.trim(),
+          terminalArgs: parsedArgs,
+          editorCommand: editorCommand.trim(),
+        },
+      ],
+    });
+    setNewTerminalEditor({ label: "", terminalCommand: "", terminalArgs: "", editorCommand: "" });
+  }, [newTerminalEditor, settings, updateSettings]);
+
+  const removeTerminalEditor = useCallback(
+    (id: string) => {
+      updateSettings({
+        terminalEditors: settings.terminalEditors.filter((entry) => entry.id !== id),
+      });
     },
     [settings, updateSettings],
   );
@@ -1409,6 +1459,87 @@ export function GeneralSettingsPanel() {
             </div>
           );
         })}
+      </SettingsSection>
+
+      <SettingsSection title="Terminal editors">
+        {settings.terminalEditors.length > 0 && (
+          <div>
+            {settings.terminalEditors.map((entry) => (
+              <div
+                key={entry.id}
+                className="flex items-center justify-between border-t border-border px-4 py-3 first:border-t-0 sm:px-5"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground">{entry.label}</p>
+                  <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                    {entry.terminalCommand}
+                    {entry.terminalArgs.length > 0 ? ` ${entry.terminalArgs.join(" ")}` : ""}{" "}
+                    {entry.editorCommand}
+                  </p>
+                </div>
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  className="ml-2 shrink-0 text-muted-foreground hover:text-destructive"
+                  aria-label={`Remove ${entry.label}`}
+                  onClick={() => removeTerminalEditor(entry.id)}
+                >
+                  <XIcon className="size-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="border-t border-border px-4 py-4 first:border-t-0 sm:px-5">
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Configure terminal editors to open your project in a TUI editor (e.g. nvim) running
+              inside a terminal emulator (e.g. ghostty). Both commands must be available in PATH.
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Input
+                placeholder="Label (e.g. Neovim in Ghostty)"
+                value={newTerminalEditor.label}
+                onChange={(e) =>
+                  setNewTerminalEditor((prev) => ({ ...prev, label: e.target.value }))
+                }
+              />
+              <Input
+                placeholder="Terminal command (e.g. ghostty)"
+                value={newTerminalEditor.terminalCommand}
+                onChange={(e) =>
+                  setNewTerminalEditor((prev) => ({ ...prev, terminalCommand: e.target.value }))
+                }
+              />
+              <Input
+                placeholder="Terminal args (e.g. -e)"
+                value={newTerminalEditor.terminalArgs}
+                onChange={(e) =>
+                  setNewTerminalEditor((prev) => ({ ...prev, terminalArgs: e.target.value }))
+                }
+              />
+              <Input
+                placeholder="Editor command (e.g. nvim)"
+                value={newTerminalEditor.editorCommand}
+                onChange={(e) =>
+                  setNewTerminalEditor((prev) => ({ ...prev, editorCommand: e.target.value }))
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") addTerminalEditor();
+                }}
+              />
+            </div>
+            {terminalEditorAddError && (
+              <p className="text-xs text-destructive">{terminalEditorAddError}</p>
+            )}
+            <div className="flex justify-end">
+              <Button size="xs" variant="outline" onClick={addTerminalEditor}>
+                <PlusIcon className="size-3.5" />
+                Add terminal editor
+              </Button>
+            </div>
+          </div>
+        </div>
       </SettingsSection>
 
       <SettingsSection title="Advanced">

@@ -12,6 +12,12 @@ import { ModelCapabilities } from "./model";
 import { ProviderKind } from "./orchestration";
 import { ServerSettings } from "./settings";
 
+export const AvailableTerminalEditor = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
+});
+export type AvailableTerminalEditor = typeof AvailableTerminalEditor.Type;
+
 const KeybindingsMalformedConfigIssue = Schema.Struct({
   kind: Schema.Literal("keybindings.malformed-config"),
   message: TrimmedNonEmptyString,
@@ -89,6 +95,7 @@ export const ServerConfig = Schema.Struct({
   issues: ServerConfigIssues,
   providers: ServerProviders,
   availableEditors: Schema.Array(EditorId),
+  availableTerminalEditors: Schema.Array(AvailableTerminalEditor),
   observability: ServerObservability,
   settings: ServerSettings,
 });
@@ -123,6 +130,7 @@ export type ServerConfigProviderStatusesPayload = typeof ServerConfigProviderSta
 
 export const ServerConfigSettingsUpdatedPayload = Schema.Struct({
   settings: ServerSettings,
+  availableTerminalEditors: Schema.Array(AvailableTerminalEditor),
 });
 export type ServerConfigSettingsUpdatedPayload = typeof ServerConfigSettingsUpdatedPayload.Type;
 
